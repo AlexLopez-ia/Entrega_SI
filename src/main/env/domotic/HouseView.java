@@ -19,8 +19,6 @@ public class HouseView extends GridWorldView {
 
     HouseModel model;
     
-    // Lista para almacenar animaciones activas
-    private List<MedicationAnimation> activeAnimations = new ArrayList<>();
     
     // Para mensajes de estado
     private String statusMessage = null;
@@ -47,6 +45,7 @@ public class HouseView extends GridWorldView {
         currentDirectory = Paths.get("").toAbsolutePath().toString();
         viewSize = 800;
         setSize(viewSize, viewSize/2);
+        repaint();
     }
 
     /** draw application objects */
@@ -146,6 +145,7 @@ public class HouseView extends GridWorldView {
             drawMedCabinet(g, x, y);
             break;
         }
+        repaint();
     }
                           
     @Override
@@ -228,9 +228,7 @@ public class HouseView extends GridWorldView {
             }
             if (lRobot != null && lRobot.isNeigbour(lOwner)) {	
                 String o = "S";
-                if (model.getSipCount() > 0) {
-                    o +=  " ("+model.getSipCount()+")";
-                }
+
                 g.setColor(Color.yellow);
                 drawString(g, x, y, defaultFont, o);
             }                                                           
@@ -415,9 +413,7 @@ public class HouseView extends GridWorldView {
         Location lRobot = model.getAgPos(0);
         Location lOwner = model.getAgPos(1);
         
-        boolean isCabinetOpen = model.isCabinetOpen() || 
-                              (lRobot != null && lRobot.distance(model.lMedCabinet) == 1) || 
-                              (lOwner != null && lOwner.distance(model.lMedCabinet) == 1);
+        boolean isCabinetOpen = model.isCabinetOpen();
         
         if (isCabinetOpen) {
             // Gabinete abierto
@@ -425,19 +421,15 @@ public class HouseView extends GridWorldView {
             drawImage(g, x, y, objPath);
             g.setColor(Color.yellow);
             
-            // Resaltar si es necesario
-            if (highlightCabinet && (System.currentTimeMillis() - highlightStartTime) < HIGHLIGHT_DURATION) {
-                drawSquare(g, x, y);
-            }
             
             // Mostrar información detallada de medicamentos
             drawString(g, x, y, defaultFont, "PA (" + model.getAvailableMedication("paracetamol") + ")" + 
                        "IB (" + model.getAvailableMedication("ibuprofeno") + ")" + 
                        "LO (" + model.getAvailableMedication("lorazepam") + ")");
             drawString(g, x, y + 1, defaultFont, "AS (" + model.getAvailableMedication("aspirina") + ")" + 
-                       "AM (" + model.getAvailableMedication("amoxicilina") + ")");
+                       "FT (" + model.getAvailableMedication("fent") + ")");
                        
-            drawMedicationIcons(g, x, y);
+          
         } else {
             // Gabinete cerrado
             String objPath = "/doc/medicinas_cerrado.jpeg";
@@ -446,137 +438,4 @@ public class HouseView extends GridWorldView {
         }
     }
     
-    // Dibuja iconos representando los medicamentos disponibles
-    void drawMedicationIcons(Graphics g, int x, int y) {
-        // Mostrar información más detallada sobre medicamentos disponibles
-        if (model.getOwnerMedicamentos() != null && !model.getOwnerMedicamentos().isEmpty()) {
-            StringBuilder info = new StringBuilder("Meds: ");
-            int count = 0;
-            
-            for (String medName : model.getOwnerMedicamentos()) {
-                // Limitar a 3 medicamentos por línea
-                if (count >= 3) break;
-                
-                info.append(medName.substring(0, Math.min(2, medName.length())).toUpperCase())
-                    .append("(").append(model.getAvailableMedication(medName)).append(") ");
-                count++;
-            }
-            
-            drawString(g, x, y + 2, defaultFont, info.toString());
-        }
-    }
-    
-    // Genera un color único para cada medicamento
-    Color getMedicationColor(String medName) {
-        if (medName == null) return Color.WHITE;
-        
-        // Generar un color basado en el nombre del medicamento
-        int hash = medName.hashCode();
-        int r = (hash & 0xFF0000) >> 16;
-        int g = (hash & 0x00FF00) >> 8;
-        int b = hash & 0x0000FF;
-        
-        // Asegurar que el color sea visible
-        r = Math.max(r, 100);
-        g = Math.max(g, 100);
-        b = Math.max(b, 100);
-        
-        return new Color(r, g, b);
-    }
-    
-    /**
-     * Clase para las animaciones de los medicamentos
-     */
-    class MedicationAnimation {
-        String medName;
-        int startX, startY;
-        int currentX, currentY;
-        int targetX, targetY;
-        int frames = 20; // duración de la animación
-        int currentFrame = 0;
-        Color color;
-        
-        MedicationAnimation(String medName, int startX, int startY, int targetX, int targetY) {
-            this.medName = medName;
-            this.startX = this.currentX = startX;
-            this.startY = this.currentY = startY;
-            this.targetX = targetX;
-            this.targetY = targetY;
-            this.color = getMedicationColor(medName);
-        }
-        
-        boolean update() {
-            currentFrame++;
-            
-            if (currentFrame <= frames) {
-                // Actualizar posición interpolando
-                float progress = (float)currentFrame / frames;
-                currentX = startX + (int)((targetX - startX) * progress);
-                currentY = startY + (int)((targetY - startY) * progress);
-                return true;
-            }
-            
-            return false; // La animación ha terminado
-        }
-        
-        void draw(Graphics g) {
-            int size = 10 + (int)(5 * (1 - (float)currentFrame / frames));
-            g.setColor(color);
-            g.fillOval(currentX - size/2, currentY - size/2, size, size);
-            
-            // Dibujar nombre del medicamento
-            g.setColor(Color.BLACK);
-            g.setFont(new Font("Arial", Font.BOLD, 10));
-            g.drawString(medName, currentX - size, currentY - size);
-        }
-    }
-    
-    // Método para añadir una nueva animación de medicamento
-    public void addMedicationAnimation(String medName, int startX, int startY, int targetX, int targetY) {
-        activeAnimations.add(new MedicationAnimation(medName, startX, startY, targetX, targetY));
-        repaint(); // Iniciar la animación inmediatamente
-    }
-    
-    // Método para mostrar un mensaje de estado temporal
-    public void showStatusMessage(String message) {
-        this.statusMessage = message;
-        this.statusMessageTime = System.currentTimeMillis();
-        repaint();
-    }
-    
-    // Método para resaltar el gabinete de medicamentos
-    public void highlightMedCabinet() {
-        this.highlightCabinet = true;
-        this.highlightStartTime = System.currentTimeMillis();
-        repaint();
-    }
-    
-    @Override
-    public void paint(Graphics g) {
-        super.paint(g);
-        
-        // Actualizar y dibujar animaciones activas
-        Iterator<MedicationAnimation> it = activeAnimations.iterator();
-        while (it.hasNext()) {
-            MedicationAnimation anim = it.next();
-            if (!anim.update()) {
-                it.remove(); // Eliminar animaciones terminadas
-            } else {
-                anim.draw(g);
-            }
-        }
-        
-        // Dibujar mensaje de estado si no ha caducado
-        long currentTime = System.currentTimeMillis();
-        if (statusMessage != null && currentTime - statusMessageTime < MESSAGE_DURATION) {
-            g.setColor(new Color(0, 0, 0, 200));
-            g.setFont(new Font("Arial", Font.BOLD, 14));
-            g.drawString(statusMessage, 20, getHeight() - 20);
-        }
-        
-        // Solicitar repintado constante si hay animaciones activas
-        if (!activeAnimations.isEmpty()) {
-            repaint(50); // Repintar cada 50ms para animaciones suaves
-        }
-    }
 }

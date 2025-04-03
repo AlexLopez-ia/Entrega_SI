@@ -33,7 +33,7 @@ public class Calendar extends JFrame {
         slider.setMaximum(23);
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
-        slider.setValue(0);
+        slider.setValue(10);
         Dictionary<Integer, JLabel> lbs = new Hashtable<Integer, JLabel>();
         for (int i = 0; i < 24; i++) {
             lbs.put(i, new JLabel("" + i + ":00"));

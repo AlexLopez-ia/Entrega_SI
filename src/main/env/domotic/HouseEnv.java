@@ -17,12 +17,10 @@ public class HouseEnv extends Environment implements CalendarListener {
     public static final Literal clf  = Literal.parseLiteral("close(fridge)");
     public static final Literal gb   = Literal.parseLiteral("get(medicamento)");
     public static final Literal hb   = Literal.parseLiteral("hand_in(medicamento)");
-    public static final Literal sb   = Literal.parseLiteral("sip(medicamento)");
     public static final Literal hob  = Literal.parseLiteral("has(owner,medicamento)");
 
-    public static final Literal af   = Literal.parseLiteral("at(enfermera,fridge)");
-    public static final Literal ao   = Literal.parseLiteral("at(enfermera,owner)");
-    public static final Literal ad   = Literal.parseLiteral("at(enfermera,delivery)");
+    public static final Literal af   = Literal.parseLiteral("at(robot,fridge)");
+    public static final Literal ao   = Literal.parseLiteral("at(robot,owner)");
 	
     public static final Literal oaf  = Literal.parseLiteral("at(owner,fridge)");
     public static final Literal oac1 = Literal.parseLiteral("at(owner,chair1)");
@@ -30,42 +28,41 @@ public class HouseEnv extends Environment implements CalendarListener {
     public static final Literal oac3 = Literal.parseLiteral("at(owner,chair3)");
     public static final Literal oac4 = Literal.parseLiteral("at(owner,chair4)");
     public static final Literal oasf = Literal.parseLiteral("at(owner,sofa)");
-    public static final Literal oad  = Literal.parseLiteral("at(owner,delivery)");
 
     // Literales para el gabinete de medicamentos (renombrado a cabinet para compatibilidad)
-    public static final Literal ac = Literal.parseLiteral("at(enfermera,cabinet)");
+    public static final Literal ac = Literal.parseLiteral("at(robot,cabinet)");
     public static final Literal oac = Literal.parseLiteral("at(owner,cabinet)");
     public static final Literal oc = Literal.parseLiteral("open(cabinet)");
     public static final Literal clc = Literal.parseLiteral("close(cabinet)");
     
     // Literales para ubicaciones adicionales
-    public static final Literal ar = Literal.parseLiteral("at(enfermera,retrete)");
+    public static final Literal ar = Literal.parseLiteral("at(robot,retrete)");
     public static final Literal or = Literal.parseLiteral("at(owner,retrete)");
-    public static final Literal aw = Literal.parseLiteral("at(enfermera,washer)");
+    public static final Literal aw = Literal.parseLiteral("at(robot,washer)");
     public static final Literal oaw = Literal.parseLiteral("at(owner,washer)");
     public static final Literal oab1 = Literal.parseLiteral("at(owner,bed1)");
     public static final Literal oab2 = Literal.parseLiteral("at(owner,bed2)");
     public static final Literal oab3 = Literal.parseLiteral("at(owner,bed3)");
     
     // Literales para puertas
-    public static final Literal adbat1 = Literal.parseLiteral("at(enfermera,lDoorBath1)");
-    public static final Literal adbat2 = Literal.parseLiteral("at(enfermera,lDoorBath2)");
-    public static final Literal adb1 = Literal.parseLiteral("at(enfermera,lDoorBed1)");
-    public static final Literal adb2 = Literal.parseLiteral("at(enfermera,lDoorBed2)");
-    public static final Literal adb3 = Literal.parseLiteral("at(enfermera,lDoorBed3)");
-    public static final Literal adk1 = Literal.parseLiteral("at(enfermera,lDoorKit1)");
-    public static final Literal adk2 = Literal.parseLiteral("at(enfermera,lDoorKit2)");
-    public static final Literal ads1 = Literal.parseLiteral("at(enfermera,lDoorSal1)");
-    public static final Literal ads2 = Literal.parseLiteral("at(enfermera,lDoorSal2)");
-    public static final Literal adh = Literal.parseLiteral("at(enfermera,lDoorHome)");
+    public static final Literal adbat1 = Literal.parseLiteral("at(robot,lDoorBath1)");
+    public static final Literal adbat2 = Literal.parseLiteral("at(robot,lDoorBath2)");
+    public static final Literal adb1 = Literal.parseLiteral("at(robot,lDoorBed1)");
+    public static final Literal adb2 = Literal.parseLiteral("at(robot,lDoorBed2)");
+    public static final Literal adb3 = Literal.parseLiteral("at(robot,lDoorBed3)");
+    public static final Literal adk1 = Literal.parseLiteral("at(robot,lDoorKit1)");
+    public static final Literal adk2 = Literal.parseLiteral("at(robot,lDoorKit2)");
+    public static final Literal ads1 = Literal.parseLiteral("at(robot,lDoorSal1)");
+    public static final Literal ads2 = Literal.parseLiteral("at(robot,lDoorSal2)");
+    public static final Literal adh = Literal.parseLiteral("at(robot,lDoorHome)");
 
     // Literales para estar exactamente al lado del gabinete
-    public static final Literal next_to_c_enfermera = Literal.parseLiteral("next_to(enfermera,cabinet)");
+    public static final Literal next_to_c_robot = Literal.parseLiteral("next_to(robot,cabinet)");
     public static final Literal next_to_c_owner = Literal.parseLiteral("next_to(owner,cabinet)");
 
     // Literal para cuando los agentes están uno al lado del otro
-    public static final Literal next_to_each_other = Literal.parseLiteral("next_to(enfermera,owner)");
-    public static final Literal next_to_owner_enfermera = Literal.parseLiteral("next_to(owner,enfermera)");
+    public static final Literal next_to_each_other = Literal.parseLiteral("next_to(robot,owner)");
+    public static final Literal next_to_owner_robot = Literal.parseLiteral("next_to(owner,robot)");
 
     static Logger logger = Logger.getLogger(HouseEnv.class.getName());
     
@@ -100,14 +97,14 @@ public class HouseEnv extends Environment implements CalendarListener {
         Location lRobot = model.getAgPos(0);
         // get the robot room location
         String RobotPlace = model.getRoom(lRobot);
-        addPercept("enfermera", Literal.parseLiteral("atRoom("+RobotPlace+")"));
-        addPercept("owner", Literal.parseLiteral("atRoom(enfermera,"+RobotPlace+")"));
+        addPercept("robot", Literal.parseLiteral("atRoom("+RobotPlace+")"));
+        addPercept("owner", Literal.parseLiteral("atRoom(robot,"+RobotPlace+")"));
         // get the owner location
         Location lOwner = model.getAgPos(1);
         // get the owner room location
         String OwnerPlace = model.getRoom(lOwner);
         addPercept("owner", Literal.parseLiteral("atRoom("+OwnerPlace+")"));  
-        addPercept("enfermera", Literal.parseLiteral("atRoom(owner,"+OwnerPlace+")"));
+        addPercept("robot", Literal.parseLiteral("atRoom(owner,"+OwnerPlace+")"));
         
         // Verificar si los agentes están en puertas
         if (lRobot.distance(model.lDoorHome)==0 ||
@@ -120,7 +117,7 @@ public class HouseEnv extends Environment implements CalendarListener {
             lRobot.distance(model.lDoorBed1)==0 ||
             lRobot.distance(model.lDoorBed2)==0 ||
             lRobot.distance(model.lDoorBed3)==0) {
-            addPercept("enfermera", Literal.parseLiteral("atDoor"));
+            addPercept("robot", Literal.parseLiteral("atDoor"));
         }
         
         if (lOwner.distance(model.lDoorHome)==0 ||
@@ -151,8 +148,7 @@ public class HouseEnv extends Environment implements CalendarListener {
         addPercept(Literal.parseLiteral("atRoom(chair3, "+chair3Place+")"));
         String chair4Place = model.getRoom(model.lChair4);
         addPercept(Literal.parseLiteral("atRoom(chair4, "+chair4Place+")"));
-        String deliveryPlace = model.getRoom(model.lDeliver);
-        addPercept(Literal.parseLiteral("atRoom(delivery, "+deliveryPlace+")"));
+        
         
         // Actualizar ubicaciones de camas
         String bed1Place = model.getRoom(model.lBed1);
@@ -174,7 +170,7 @@ public class HouseEnv extends Environment implements CalendarListener {
     /** creates the agents percepts based on the HouseModel */
     void updatePercepts() {
         // clear the percepts of the agents
-        clearPercepts("enfermera");
+        clearPercepts("robot");
         clearPercepts("owner");
         
         updateAgentsPlace();
@@ -185,7 +181,7 @@ public class HouseEnv extends Environment implements CalendarListener {
         
         // Verificar distancias a diferentes ubicaciones
         if (lRobot.distance(model.lFridge)<2) {
-            addPercept("enfermera", af);
+            addPercept("robot", af);
         } 
         
         if (lOwner.distance(model.lFridge)<2) {
@@ -194,7 +190,7 @@ public class HouseEnv extends Environment implements CalendarListener {
         
         // Verificar si los agentes están cerca del gabinete
         if (lRobot.distance(model.lMedCabinet) == 1) {
-            addPercept("enfermera", next_to_c_enfermera);
+            addPercept("robot", next_to_c_robot);
         }
         
         if (lOwner.distance(model.lMedCabinet) == 1) {
@@ -202,7 +198,7 @@ public class HouseEnv extends Environment implements CalendarListener {
         }
         
         if (lRobot.distance(model.lMedCabinet) < 2) {
-            addPercept("enfermera", ac);
+            addPercept("robot", ac);
         }
         
         if (lOwner.distance(model.lMedCabinet) < 2) {
@@ -211,19 +207,15 @@ public class HouseEnv extends Environment implements CalendarListener {
         
         // Verificar distancia entre robot y owner
         if (lRobot.distance(lOwner)==1) {                                                     
-            addPercept("enfermera", ao);
-            addPercept("owner", next_to_owner_enfermera);
+            addPercept("robot", ao);
+            addPercept("owner", next_to_owner_robot);
         }
 
-        // Verificar distancia a otros lugares
-        if (lRobot.distance(model.lDeliver)==1) {
-            addPercept("enfermera", ad);
-        }
         
         // Verificar posición en el gabinete
         if (lRobot.distance(model.lMedCabinet)==0) {
-            addPercept("enfermera", ac);
-            System.out.println("[enfermera] está en el gabinete.");
+            addPercept("robot", ac);
+            System.out.println("[robot] está en el gabinete.");
         }
         
         // Verificar posición del owner en diferentes muebles
@@ -270,8 +262,8 @@ public class HouseEnv extends Environment implements CalendarListener {
         
         // Verificar posición en lavadora
         if (lRobot.distance(model.lWasher) < 2) {
-            addPercept("enfermera", aw);
-            System.out.println("[enfermera] is at Washer.");
+            addPercept("robot", aw);
+            System.out.println("[robot] is at Washer.");
         }
         
         if (lOwner.distance(model.lWasher) < 2) {
@@ -279,78 +271,58 @@ public class HouseEnv extends Environment implements CalendarListener {
             System.out.println("[owner] is at Washer.");
         }
 
-        if (lOwner.distance(model.lDeliver)==0) {
-            addPercept("owner", oad);
-        }
 
         // Añadir información sobre día y noche basada en la hora
         int hour = calendar.getHora();
-        addPercept("enfermera", Literal.parseLiteral("hour(" + hour + ")"));
+        addPercept("robot", Literal.parseLiteral("hour(" + hour + ")"));
         addPercept("owner", Literal.parseLiteral("hour(" + hour + ")"));
         
         if (hour < 8 || hour >= 22) {
-            addPercept("enfermera", Literal.parseLiteral("noche"));
+            addPercept("robot", Literal.parseLiteral("noche"));
             addPercept("owner", Literal.parseLiteral("noche"));
         } else {
-            addPercept("enfermera", Literal.parseLiteral("dia"));
+            addPercept("robot", Literal.parseLiteral("dia"));
             addPercept("owner", Literal.parseLiteral("dia"));
         }
         
-        // Información sobre medicamentos y gabinete
-        if (model.isCabinetOpen()) {
-            addPercept("enfermera", Literal.parseLiteral("cabinet_open"));
-            addPercept("owner", Literal.parseLiteral("cabinet_open"));
-            
-            // Añadir información sobre medicamentos disponibles
-            for (String medName : model.getMedicationNames()) {
-                HouseModel.Medication med = model.getMedicationInfo(medName);
-                Literal medInfo = Literal.parseLiteral("medication_available(" + medName + "," + med.quantity + ")");
-                addPercept("enfermera", medInfo);
-                addPercept("owner", medInfo);
-                
-                Literal medSchedule = Literal.parseLiteral("medication_schedule(" + medName + ",\"" + med.schedule + "\")");
-                addPercept("enfermera", medSchedule);
-                addPercept("owner", medSchedule); 
-            }
-        }
-
+    
         // Añadir medicamentos que tiene el propietario
         for (String medicamento : model.getOwnerMedicamentos()) {
             Literal hasMedicamento = Literal.parseLiteral("has(owner," + medicamento + ")");
-            addPercept("enfermera", hasMedicamento);
+            addPercept("robot", hasMedicamento);
             addPercept("owner", hasMedicamento);
         }
         
         // Verificar posición en puertas
         if (lRobot.distance(model.lDoorBath1) == 0) {
-            addPercept("enfermera", adbat1);
+            addPercept("robot", adbat1);
         }
         if (lRobot.distance(model.lDoorBath2) == 0) {
-            addPercept("enfermera", adbat2);
+            addPercept("robot", adbat2);
         }
         if (lRobot.distance(model.lDoorBed1) == 0) {
-            addPercept("enfermera", adb1);
+            addPercept("robot", adb1);
         }
         if (lRobot.distance(model.lDoorBed2) == 0) {
-            addPercept("enfermera", adb2);
+            addPercept("robot", adb2);
         }
         if (lRobot.distance(model.lDoorBed3) == 0) {
-            addPercept("enfermera", adb3);
+            addPercept("robot", adb3);
         }
         if (lRobot.distance(model.lDoorKit1) == 0) {
-            addPercept("enfermera", adk1);
+            addPercept("robot", adk1);
         }
         if (lRobot.distance(model.lDoorKit2) == 0) {
-            addPercept("enfermera", adk2);
+            addPercept("robot", adk2);
         }
         if (lRobot.distance(model.lDoorSal1) == 0) {
-            addPercept("enfermera", ads1);
+            addPercept("robot", ads1);
         }
         if (lRobot.distance(model.lDoorSal2) == 0) {
-            addPercept("enfermera", ads2);
+            addPercept("robot", ads2);
         }
         if (lRobot.distance(model.lDoorHome) == 0) {
-            addPercept("enfermera", adh);
+            addPercept("robot", adh);
         }
     }
 
@@ -360,31 +332,10 @@ public class HouseEnv extends Environment implements CalendarListener {
         boolean result = false;
         
         try {
-            // Tratar específicamente el caso del propietario moviéndose al gabinete de medicamentos
-            if (action.getFunctor().equals("move_towards")) {
-                String l = action.getTerm(0).toString();
-                if ((l.equals("medcabinet") || l.equals("cabinet")) && agName.equals("owner")) {
-                    // Para el gabinete de medicamentos, moverse a una posición adyacente
-                    Location dest = getLocationFromTerm(l);
-                                            
-                    // Obtener la posición actual del propietario
-                    Location agPos = model.getAgPos(1); // 1 = owner
-                    
-                    // Si está adyacente al gabinete, considerarlo como llegado
-                    if (agPos.distance(dest) <= 1) {
-                        updateAgentsPlace();
-                        return true;
-                    }
-                    
-                    // Intentar moverse hacia el gabinete
-                    result = model.moveTowards(1, dest);
-                    return result;
-                }
-            }
-            
+
             // Continuar con la lógica original
-            if (agName.equals("enfermera")) {
-                result = executeEnfermeraAction(action);
+            if (agName.equals("robot")) {
+                result = executerobotAction(action);
             } else if (agName.equals("owner")) {
                 result = executeOwnerAction(action);
             }
@@ -401,10 +352,10 @@ public class HouseEnv extends Environment implements CalendarListener {
         return result;
     }
     
-    private boolean executeEnfermeraAction(Structure action) {
+    private boolean executerobotAction(Structure action) {
         boolean result = false;
         
-        System.out.println("["+ "enfermera" +"] doing: "+action); 
+        System.out.println("["+ "robot" +"] doing: "+action); 
         
         if (action.equals(of)) { // of = open(fridge)
             result = model.openFridge();
@@ -422,10 +373,10 @@ public class HouseEnv extends Environment implements CalendarListener {
             }
         } else if (action.getFunctor().equals("apartar")) {
             result = model.apartar(0); // Implementar este método en HouseModel
-        } else if (action.getFunctor().equals("takeMedicamento")) {
+        } else if (action.getFunctor().equals("takeMedication")) {
             String medicamento = action.getTerm(1).toString();
-            result = model.takeMedication(medicamento);
-        } else if (action.getFunctor().equals("handMedicamento")) {
+            result = model.takeMedication(0,medicamento);
+        } else if (action.getFunctor().equals("handInMedicamento")) {
             String medicamento = action.getTerm(0).toString();
             result = model.handInMedicamento(0);
             model.addOwnerMedicamento(medicamento); // Añadir a los medicamentos del owner
@@ -433,15 +384,7 @@ public class HouseEnv extends Environment implements CalendarListener {
             String medicamento = action.getTerm(0).toString();
             int num = Integer.parseInt(action.getTerm(1).toString());
             result = model.comprobarConsumo(medicamento, num);
-        } else if (action.getFunctor().equals("deliver")) {
-            try {
-                String medicamento = action.getTerm(0).toString();
-                int qtd = Integer.parseInt(action.getTerm(1).toString());
-                result = model.deliver(medicamento, qtd);
-            } catch (Exception e) {
-                logger.info("Failed to execute action deliver!" + e);
-            }
-        }
+        } 
         
         return result;
     }
@@ -475,15 +418,20 @@ public class HouseEnv extends Environment implements CalendarListener {
             result = model.openCabinet();
         } else if (action.equals(clc)) {
             result = model.closeCabinet();
-        } else if (action.getFunctor().equals("move_towards")) {
+        } else if (action.getFunctor().equals("takeMedication")) {
+            String medicamento = action.getTerm(1).toString();
+            result = model.takeMedication(1,medicamento);
+        } else if (action.getFunctor().equals("handInMedicamento")) {
+            result = model.handInMedicamento(1);
+        }else if (action.getFunctor().equals("move_towards")) {
             String l = action.getTerm(0).toString();
             Location dest = getLocationFromTerm(l);
             if (dest != null) {
                 result = model.moveTowards(1, dest);
             }
         } else if (action.getFunctor().equals("consume")) {
-            String medicamento = action.getTerm(0).toString();
-            model.removeOwnerMedicamento(medicamento); // Eliminar de la lista de medicamentos
+            String l = action.getTerm(0).toString();
+            model.removeOwnerMedicamento(l); 
             result = true;
         }
         
@@ -496,8 +444,7 @@ public class HouseEnv extends Environment implements CalendarListener {
         switch (term) {
             case "fridge": dest = model.lFridge; break;
             case "owner": dest = model.getAgPos(1); break;
-            case "enfermera": dest = model.getAgPos(0); break;
-            case "delivery": dest = model.lDeliver; break;
+            case "robot": dest = model.getAgPos(0); break;
             case "chair1": dest = model.lChair1; break;
             case "chair2": dest = model.lChair2; break;
             case "chair3": dest = model.lChair3; break;
