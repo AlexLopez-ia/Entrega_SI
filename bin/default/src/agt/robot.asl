@@ -1,19 +1,19 @@
-// Robot para la gestión de medicamentos
+// Este robot está diseñado para gestionar la entrega de medicamentos al propietario.
 
-//Cantidad inicial de medicamentos,asumiremos que en esta simulación 20 es stock suficiente.
+// El robot tiene un inventario de medicamentos y su disponibilidad inicial es 20 unidades para cada uno.
 cantidad(paracetamol,20).
 cantidad(ibuprofeno,20).
 cantidad(aspirina,20).
 cantidad(lorazepam,20).
-cantidad(amoxicilina,20).
+cantidad(fent,20).
 
 // Actualización de disponibilidad cuando cambia el inventario
 +newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
 
-!simulate_behaviour.   
+!simularComportamiento.   
 /* Plans */
 //La simulación del robot es bastante sencilla,se desplaza a 3 posiciones.
-+!simulate_behaviour[source(self)]
++!simularComportamiento[source(self)]
    <- .random(X);
    .wait(3000*X + 5000);
           // wait for a random time
@@ -22,7 +22,7 @@ cantidad(amoxicilina,20).
 	         .print("Voy a un sitio ",Y); 
              !go_at(robot,Y);    
       }
-      !simulate_behaviour.
+      !simularComportamiento.
 // Robot comprueba en cada hora si tiene que tomar una medicina,en dicho caso entregará la lista de medicinas requerida.
 +hour(H)<-
 	.findall(pauta(M,H,F),.belief(pauta(M,H,F)),L);
@@ -71,40 +71,50 @@ cantidad(amoxicilina,20).
 // Plan para reducir las cantidades de medicamentos
 +!reducirCantidad(M)[source(self)] : cantidad(M,H) <- 
     .abolish(cantidad(M,H)); 
+    if(H-1 == 0){
+        +cantidad(M,20);
+        .print("Reiniciado a 20 el medicamento: ", M);
+    }else{
     +cantidad(M,H-1);
-    .print("Quedan ", H-1, " unidades de ", M).
+    .print("Quedan ", H-1, " unidades de ", M)
+    }.
+
 
 // Plan atómico para entregar medicamentos
-@medicina[atomic]
-+!bring(owner,L)[source(self)] <- 
-    !go_at(robot,cabinet);
-    if(not at(owner,cabinet) & not .belief(comprobarConsumo(_))){
-        .send(owner, tell, quieto);
-        open(cabinet);
-        for(.member(pauta(M,H,F),L)) {
++!bring(owner,L)[source(self)]
+   <- 
+      if(not at(owner,cabinet) & not .belief(comprobarConsumo(_))){
+        .drop_intention(simularComportamiento);
+         .send(owner, tell, quieto);
+         open(cabinet);
+         for(.member(pauta(M,H,F),L))
+         {
             takeMedication(robot,M);
             !reducirCantidad(M);
+            !go_at(robot,cabinet);
             .print("He cogido ", M);
-        };
-        close(cabinet);
-        !go_at(robot,owner);
-        .send(owner,tell,espera);
-        for(.member(pauta(M,H,F),L)) {
-            .print("Le he dado ", M);
+         };
+         close(cabinet);
+         .send(owner,tell,espera);
+         for(.member(pauta(M,H,F),L))
+         {
+         !go_at(robot,owner);
+             .print("Le he dado ", M);
             handInMedicamento(M);
             !resetearPauta(M);
-        }
-        .send(owner, untell, quieto);
-    } else {
-        .wait(2000);
-        .findall(M,.belief(comprobarConsumo(M)),X);
-        for(.member(M,X)) {
-            .print("Compruebo el consumo de ",M);
+         }
+         .send(owner, untell, quieto);
+      }else{
+          .wait(2000);
+          .drop_intention(simularComportamiento);
+         .findall(M,.belief(comprobarConsumo(M)),X); //si e lowner le mando comprobarConsumo, el robot lo comprueba.
+         for(.member(M,X)){
+             .print("Compruebo el consumo de ",M);
             !comprobarConsumo(M);
             .abolish(comprobarConsumo(M));
-        }
-    };
-    !reponer.
+         }
+      }
+      !simularComportamiento.
 
 //Regla de error
 
@@ -153,10 +163,10 @@ cantidad(amoxicilina,20).
     }.
 
 // Owner le indica al robot la nueva pauta de medicinas
-+pautaNueva(M,H,F)[source(owner)] <- 
++nuevaPauta(M,H,F)[source(owner)] <- 
     .abolish(pauta(M,_,_));
     +pauta(M,H,F);
-    .abolish(pautaNueva(M,H,F));
+    .abolish(nuevaPauta(M,H,F));
     .print("Actualizada pauta de ", M, " para las ", H, " horas").
 
 @recibir[atomic]
@@ -166,7 +176,7 @@ cantidad(amoxicilina,20).
          {
 		 	!reducirCantidad(M);
 		 	.print("Le he dado ", M);
-            handDrug(M);
+            handInMedicamento(M);
 			!resetearPauta(M);
          }
 		 !reponer.

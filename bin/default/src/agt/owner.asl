@@ -1,14 +1,16 @@
+//Codigo para el funcionamiento del agente Owner
+
 !pauta_medicamentos.
-!simulate_behaviour.
-//Pautas:nombre,hora,frecuencia.
-pauta(paracetamol,8,6).
+!simularComportamiento.
+//Pautas de los medicamentos,es decir,horarios y frecuencia de toma.
+pauta(paracetamol,10,6).
 pauta(ibuprofeno,12,6).
 pauta(lorazepam,22,23).
-pauta(aspirina,8,8).
-pauta(amoxicilina,15,2).
+pauta(aspirina,17,8).
+pauta(fent,15,2).
 
 
-//El robot es quien controla los horarios,es decir,actualiza tras una consumici�n,por lo tanto debe indicarle al owner la nueva hora.
+//El robot es quien controla los horarios,es decir,actualiza tras una consumicion,por lo tanto debe indicarle al owner la nueva hora.
 +pauta(M,H,F)[source(robot)] <- .abolish(pauta(M,H-F,_)).
 +!pauta_medicamentos 
    <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
@@ -20,18 +22,18 @@ pauta(amoxicilina,15,2).
 //Owner va por las medicinas,por tanto suspende su comportamiento.
 //@tomarMedicina[atomic]
 +!tomarMedicina(L)[source(self)]<-
-   if(.intend(simulate_behaviour)){
-      .drop_intention(simulate_behaviour);
+   if(.intend(simularComportamiento)){
+      .drop_intention(simularComportamiento);
    }
    !tomar(owner,L);
-   !simulate_behaviour.
+   !simularComportamiento.
 
 //Cuando el robot le da las medicinas en la mano,le pide al owner que se quede quieto.
 +espera :not durmiendo<- 
-	if(.intend(simulate_behaviour))
+	if(.intend(simularComportamiento))
 	{
-		.drop_intention(simulate_behaviour);
-		!simulate_behaviour;
+		.drop_intention(simularComportamiento);
+		!simularComportamiento;
 	};
 	.abolish(espera).
 
@@ -51,7 +53,7 @@ pauta(amoxicilina,15,2).
 					.abolish(pauta(M,H,F));
 					.print("Nueva pauta:[",M,",",X,",",F,"]");
 					+pauta(M,X,F);
-					.send(robot,tell,pautaNueva(M,X,F));
+					.send(robot,tell,nuevaPauta(M,X,F));
 				}
 			}
 		}.
@@ -60,7 +62,7 @@ pauta(amoxicilina,15,2).
 
 
 //Simulamos comportamiento,utilizamos la aleatoriedad para distribuirlo en 3 casos:1)Moverse a elementos actuables2)Sentarse3)Siesta.
-+!simulate_behaviour[source(self)] : not durmiendo
++!simularComportamiento[source(self)] : not durmiendo
    <- .random(X); .wait(3000*X + 5000); // wait for a random time
      if(X < 0.5){
       .random([fridge,washer],Y);
@@ -79,7 +81,7 @@ pauta(amoxicilina,15,2).
       !go_at(owner,Y);
 	  .print("Me acuesto");
      }
-     !simulate_behaviour.
+     !simularComportamiento.
 
 //El owner si es hora de la pauta,tiene una probabilidad A(P(A)=0.2) de ir por la pauta.
 +hour(H) : dia<-
@@ -95,14 +97,31 @@ pauta(amoxicilina,15,2).
      }
    }.
 
++noche : not durmiendo & hour(T) <-
+	if(.intend(simularComportamiento))
+	{
+		.drop_intention(simularComportamiento);
+	};
+	//Cambiamos pautas
+	!cambiarPauta(T);
+    .random([bed3,bed2,bed1],Y);
+	.print("Es de noche, voy a dormir a ",Y);
+	!go_at(owner,Y);
+    +durmiendo.
+
+//Al ser de dia el owner se despierta.
++dia : durmiendo
+<-	-durmiendo;
+	.print("He despertado");
+	!simularComportamiento.
 //El robot resuelve la condición de carrera de ir al cabinet informándole que ya que el ha llegado primero él se las dará.
 +quieto
    <- .print("Espero por mis medicinas");
       if(.intend(tomarMedicina(_))){
          .drop_intention(tomarMedicina(_));
       }
-      if(not .intend(simulate_behaviour) & not durmiendo){
-         !simulate_behaviour;
+      if(not .intend(simularComportamiento) & not durmiendo){
+         !simularComportamiento;
       }.
 
 //Desplazamiento,la coregla -go_at,sirve para indicar que no hay camino,en nuestro mundo significa que hay un agente delante por lo que a través de prioridades le pide apartar.
