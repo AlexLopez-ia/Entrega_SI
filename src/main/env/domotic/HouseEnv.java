@@ -11,7 +11,7 @@ import java.util.HashMap;
 import javax.swing.JFrame;
 
 public class HouseEnv extends Environment implements CalendarListener {
-
+    //Comentario prueba
     // common literals
     public static final Literal of   = Literal.parseLiteral("open(fridge)");
     public static final Literal clf  = Literal.parseLiteral("close(fridge)");
