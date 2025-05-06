@@ -6,7 +6,6 @@ import jason.environment.grid.Area;
 import jason.asSyntax.*;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -39,12 +38,7 @@ public class HouseModel extends GridWorldModel {
 
     private ArrayList<String> ownerMedicamentos = new ArrayList<>();
 
-    private int availableParacetamol = 20;
-    private int availableIbuprofeno = 20;
-    private int availableLorazepam = 20;
-    private int availableAspirina = 20;
-    private int availableFent = 20;
-
+    private HashMap<String,Integer> availableMedicines;
 
     private int ownerMove = 0;
 
@@ -149,6 +143,14 @@ public class HouseModel extends GridWorldModel {
         addWall(GSize + 2, GSize / 2, GSize * 2 - 1, GSize / 2);
         add(DOOR, lDoorBed3);
         add(DOOR, lDoorBath2);
+
+        // Inicialización del inventario de medicinas
+        availableMedicines = new HashMap<String,Integer>();
+        availableMedicines.put("paracetamol", 20);
+        availableMedicines.put("ibuprofeno", 20);
+        availableMedicines.put("lorazepam", 20);
+        availableMedicines.put("aspirina", 20);
+        availableMedicines.put("fent", 20);
     }
 
     // Clase interna para almacenar información de medicamentos
@@ -375,64 +377,14 @@ public class HouseModel extends GridWorldModel {
         return dirs.size() > 0;
     }
 
-    int getAvailableMedication(String medicamento) {
-        int toRet = 0;
-        switch (medicamento) {
-            case "paracetamol":
-                toRet = availableParacetamol;
-                break;
-            case "ibuprofeno":
-                toRet = availableIbuprofeno;
-                break;
-            case "lorazepam":
-                toRet = availableLorazepam;
-                break;
-            case "aspirina":
-                toRet = availableAspirina;
-                break;
-            case "fent":
-                toRet = availableFent;
-                break;
-            default:
-                break;
-        }
-        return toRet;
+    public int getAvailableMedication(String medicamento) {
+        return availableMedicines.get(medicamento);
     }
 
     public void reduceAvailableMedication(String medicamento) {
-        switch (medicamento) {
-            case "paracetamol":
-                availableParacetamol--;
-                if(availableParacetamol==0){
-                    availableParacetamol = 20;
-                }
-                break;
-            case "ibuprofeno":
-                availableIbuprofeno--;
-                if(availableIbuprofeno==0){
-                    availableIbuprofeno = 20;
-                }
-                break;
-            case "lorazepam":
-                availableLorazepam--;
-                if(availableLorazepam==0){
-                    availableLorazepam = 20;
-                }
-                break;
-            case "aspirina":
-                availableAspirina--;
-                if(availableAspirina==0){
-                    availableAspirina = 20;
-                }
-                break;
-            case "fent":
-                availableFent--;
-                if(availableFent==0){
-                    availableFent = 20;
-                }
-                break;
-            default:
-                break;
+        availableMedicines.put(medicamento, availableMedicines.get(medicamento) - 1);
+        if(availableMedicines.get(medicamento)==0){
+            availableMedicines.put(medicamento, 20);
         }
     }
 
@@ -575,49 +527,11 @@ public class HouseModel extends GridWorldModel {
     
 
     public boolean addMedication(String medicamento, int qtd) {
-        switch (medicamento) {
-            case "paracetamol":
-                availableParacetamol = qtd;
-                break;
-            case "ibuprofeno":
-                availableIbuprofeno = qtd;
-                break;
-            case "lorazepam":
-                availableLorazepam = qtd;
-                break;
-            case "aspirina":
-                availableAspirina = qtd;
-                break;
-            case "fent":
-                availableFent = qtd;
-                break;
-            default:
-                break;
-        }
+        availableMedicines.put(medicamento, qtd);
         return true;
     }
 
 
-
-    public int getAvailableParacetamol() {
-        return availableParacetamol;
-    }
-
-    public int getAvailableIbuprofeno() {
-        return availableIbuprofeno;
-    }
-
-    public int getAvailableLorazepam() {
-        return availableLorazepam;
-    }
-
-    public int getAvailableAspirina() {
-        return availableAspirina;
-    }
-
-    public int getAvailableFent() {
-        return availableFent;
-    }
 
     public List<String> getOwnerMedicamentos() {
         return ownerMedicamentos;
