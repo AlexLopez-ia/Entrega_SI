@@ -9,6 +9,7 @@ import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.net.URL;
 import java.nio.file.Paths;
 
@@ -421,15 +422,13 @@ public class HouseView extends GridWorldView {
             drawImage(g, x, y, objPath);
             g.setColor(Color.yellow);
             
-            
-            // Mostrar información detallada de medicamentos
-            drawString(g, x, y, defaultFont, "PA (" + model.getAvailableMedication("paracetamol") + ")" + 
-                       "IB (" + model.getAvailableMedication("ibuprofeno") + ")" + 
-                       "LO (" + model.getAvailableMedication("lorazepam") + ")");
-            drawString(g, x, y + 1, defaultFont, "AS (" + model.getAvailableMedication("aspirina") + ")" + 
-                       "FT (" + model.getAvailableMedication("fent") + ")");
-                       
-          
+            // Mostrar información detallada de medicamentos dinámicamente
+            int offset = 0;
+            for (Map.Entry<String,Integer> e : model.getAvailableMedicines().entrySet()) {
+                String text = e.getKey().substring(0,2).toUpperCase() + " (" + e.getValue() + ")";
+                drawString(g, x, y + offset, defaultFont, text);
+                offset++;
+            }
         } else {
             // Gabinete cerrado
             String objPath = "/doc/medicinas_cerrado.jpeg";

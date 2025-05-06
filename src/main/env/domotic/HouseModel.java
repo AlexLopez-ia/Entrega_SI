@@ -6,10 +6,10 @@ import jason.environment.grid.Area;
 import jason.asSyntax.*;
 
 import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.Set;
+import java.util.ArrayList;
 
 /** class that implements the Model of Domestic Robot application */
 public class HouseModel extends GridWorldModel {
@@ -36,11 +36,13 @@ public class HouseModel extends GridWorldModel {
     private boolean cabinetOpen = false; 
     private int carryingMedicamentos = 0; 
 
-    private ArrayList<String> ownerMedicamentos = new ArrayList<>();
+    private HashMap<String,Integer> ownerMedicamentos;
 
     private HashMap<String,Integer> availableMedicines;
 
     private int ownerMove = 0;
+
+    private Map<String,Pauta> pautas;
 
     // Initialization of the objects Location on the domotic home scene
     public Location lSofa = new Location(GSize / 2, GSize - 2);
@@ -90,7 +92,11 @@ public class HouseModel extends GridWorldModel {
     public HouseModel() {
         // create a GSize x 2GSize grid with 2 mobile agents (robot y owner)
         super(2 * GSize, GSize, 2);
-
+        // Inicializar mapas de medicamentos
+        availableMedicines = new HashMap<>();
+        ownerMedicamentos = new HashMap<>();
+        pautas = new HashMap<>();
+        
         // initial location of robot (column 3, line 3)
         // ag code 0 means the robot
         setAgPos(0, 5, 7);
@@ -145,12 +151,20 @@ public class HouseModel extends GridWorldModel {
         add(DOOR, lDoorBath2);
 
         // Inicialización del inventario de medicinas
-        availableMedicines = new HashMap<String,Integer>();
         availableMedicines.put("paracetamol", 20);
         availableMedicines.put("ibuprofeno", 20);
         availableMedicines.put("lorazepam", 20);
         availableMedicines.put("aspirina", 20);
         availableMedicines.put("fent", 20);
+        
+        // Inicialización de las pautas de medicamentos (horario y frecuencia)
+        pautas.put("paracetamol", new Pauta(10,6));
+        pautas.put("ibuprofeno", new Pauta(12,6));
+        pautas.put("lorazepam", new Pauta(22,23));
+        pautas.put("aspirina", new Pauta(17,8));
+        pautas.put("fent", new Pauta(15,2));
+        
+        // Inicialización de la lista de medicamentos del propietario
     }
 
     // Clase interna para almacenar información de medicamentos
@@ -378,14 +392,12 @@ public class HouseModel extends GridWorldModel {
     }
 
     public int getAvailableMedication(String medicamento) {
-        return availableMedicines.get(medicamento);
+        return availableMedicines.getOrDefault(medicamento, 0);
     }
 
     public void reduceAvailableMedication(String medicamento) {
-        availableMedicines.put(medicamento, availableMedicines.get(medicamento) - 1);
-        if(availableMedicines.get(medicamento)==0){
-            availableMedicines.put(medicamento, 20);
-        }
+        int v = availableMedicines.getOrDefault(medicamento, 0) - 1;
+        availableMedicines.put(medicamento, v < 1 ? 20 : v);
     }
 
     public boolean takeMedication(int ag, String drug) {
@@ -533,7 +545,7 @@ public class HouseModel extends GridWorldModel {
 
 
 
-    public List<String> getOwnerMedicamentos() {
+    public HashMap<String,Integer> getOwnerMedicamentos() {
         return ownerMedicamentos;
     }
 
@@ -543,7 +555,12 @@ public class HouseModel extends GridWorldModel {
      * @param medicamento Nombre del medicamento a eliminar
      */
     public void removeOwnerMedicamento(String medicamento) {
-        ownerMedicamentos.remove(medicamento);
+        int qty = ownerMedicamentos.getOrDefault(medicamento, 0);
+        if (qty > 1) {
+            ownerMedicamentos.put(medicamento, qty - 1);
+        } else {
+            ownerMedicamentos.remove(medicamento);
+        }
     }
 
     /**
@@ -552,7 +569,8 @@ public class HouseModel extends GridWorldModel {
      * @param medicamento Nombre del medicamento a añadir
      */
     public void addOwnerMedicamento(String medicamento) {
-        ownerMedicamentos.add(medicamento);
+        ownerMedicamentos.put(medicamento,
+            ownerMedicamentos.getOrDefault(medicamento, 0) + 1);
     }
 
     /**
@@ -627,4 +645,21 @@ public class HouseModel extends GridWorldModel {
         return lMedCabinet;
     }
 
+    public Map<String, Integer> getAvailableMedicines() {
+        return availableMedicines;
+    }
+
+    public static class Pauta {
+        public final int hora;
+        public final int freq;
+
+        public Pauta(int hora, int freq) {
+            this.hora = hora;
+            this.freq = freq;
+        }
+    }
+
+    public Map<String,Pauta> getPautas() { 
+        return pautas; 
+    }
 }

@@ -1,14 +1,14 @@
 // Este robot está diseñado para gestionar la entrega de medicamentos al propietario.
 
 // El robot tiene un inventario de medicamentos y su disponibilidad inicial es 20 unidades para cada uno.
-cantidad(paracetamol,20).
-cantidad(ibuprofeno,20).
-cantidad(aspirina,20).
-cantidad(lorazepam,20).
-cantidad(fent,20).
+// cantidad(paracetamol,20).
+// cantidad(ibuprofeno,20).
+// cantidad(aspirina,20).
+// cantidad(lorazepam,20).
+// cantidad(fent,20).
 
 // Actualización de disponibilidad cuando cambia el inventario
-+newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
+// +newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
 
 !simularComportamiento.   
 /* Plans */

@@ -4,10 +4,7 @@ import jason.asSyntax.*;
 import jason.environment.Environment;
 import jason.environment.grid.Location;
 import java.util.logging.Logger;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import javax.swing.JFrame;
 
 public class HouseEnv extends Environment implements CalendarListener {
@@ -66,8 +63,7 @@ public class HouseEnv extends Environment implements CalendarListener {
 
     static Logger logger = Logger.getLogger(HouseEnv.class.getName());
     
-    // Lista para gestionar los medicamentos del propietario
-    private List<String> ownerMedicamentos = new ArrayList<>();
+    // ownerMedicamentos gestionado en HouseModel
     
     // Objeto Calendar para gestionar el tiempo
     private Calendar calendar;
@@ -83,7 +79,9 @@ public class HouseEnv extends Environment implements CalendarListener {
             System.out.println("Error al inicializar el calendario: " + e.getMessage());
             e.printStackTrace();
         }
-        
+        // Inicialización de ownerMedicines
+        model.getOwnerMedicamentos();
+
         if (args.length == 1 && args[0].equals("gui")) {
             HouseView view = new HouseView(model);
             model.setView(view);
@@ -287,10 +285,24 @@ public class HouseEnv extends Environment implements CalendarListener {
         
     
         // Añadir medicamentos que tiene el propietario
-        for (String medicamento : model.getOwnerMedicamentos()) {
+        for (String medicamento : model.getOwnerMedicamentos().keySet()) {
             Literal hasMedicamento = Literal.parseLiteral("has(owner," + medicamento + ")");
             addPercept("robot", hasMedicamento);
             addPercept("owner", hasMedicamento);
+        }
+        
+        // Añadir perceptos dinámicos de cantidades de medicamentos
+        for (Map.Entry<String,Integer> e : model.getAvailableMedicines().entrySet()) {
+            Literal drugQty = Literal.parseLiteral("cantidad("+e.getKey()+","+e.getValue()+")");
+            addPercept("robot", drugQty);
+        }
+        
+        // Añadir pautas de medicamentos (horario y frecuencia)
+        for (Map.Entry<String, HouseModel.Pauta> e : model.getPautas().entrySet()) {
+            String m = e.getKey();
+            int h = e.getValue().hora;
+            int f = e.getValue().freq;
+            addPercept("owner", Literal.parseLiteral("pauta(" + m + "," + h + "," + f + ")"));
         }
         
         // Verificar posición en puertas
@@ -422,7 +434,9 @@ public class HouseEnv extends Environment implements CalendarListener {
             String medicamento = action.getTerm(1).toString();
             result = model.takeMedication(1,medicamento);
         } else if (action.getFunctor().equals("handInMedicamento")) {
+            String medicamento = action.getTerm(0).toString();
             result = model.handInMedicamento(1);
+            model.addOwnerMedicamento(medicamento);  // registrar el medicamento en la lista del owner
         }else if (action.getFunctor().equals("move_towards")) {
             String l = action.getTerm(0).toString();
             Location dest = getLocationFromTerm(l);
@@ -470,7 +484,7 @@ public class HouseEnv extends Environment implements CalendarListener {
     }
     
     // Métodos para gestionar los medicamentos del owner
-    public List<String> getOwnerMedicamentos() {
+    public Map<String,Integer> getOwnerMedicamentos() {
         return model.getOwnerMedicamentos();
     }
     
