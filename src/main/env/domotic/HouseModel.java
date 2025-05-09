@@ -7,9 +7,12 @@ import jason.asSyntax.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.Set;
-import java.util.ArrayList;
+import java.util.Date;
+import java.util.Calendar;
 
 /** class that implements the Model of Domestic Robot application */
 public class HouseModel extends GridWorldModel {
@@ -26,7 +29,9 @@ public class HouseModel extends GridWorldModel {
     public static final int TABLE = 512;
     public static final int BED = 1024;
     public static final int WALLV = 2048;
-    public static final int MEDCABINET = 4096; // Gabinete de medicamentos
+    public static final int MEDCABINET = 4096;
+    public static final int puntoRecogida = 8192;
+    // Gabinete de medicamentos
 
     // the grid size
     public static final int GSize = 12; // Cells
@@ -36,13 +41,17 @@ public class HouseModel extends GridWorldModel {
     private boolean cabinetOpen = false; 
     private int carryingMedicamentos = 0; 
 
-    private HashMap<String,Integer> ownerMedicamentos;
+    private ArrayList<String> ownerMedicamentos = new ArrayList<>();
 
-    private HashMap<String,Integer> availableMedicines;
+    private int availableParacetamol = 1;
+    private int availableIbuprofeno = 1;
+    private int availableLorazepam = 20;
+    private int availableAspirina = 1;
+    private int availableFent = 1;
+
+
 
     private int ownerMove = 0;
-
-    private Map<String,Pauta> pautas;
 
     // Initialization of the objects Location on the domotic home scene
     public Location lSofa = new Location(GSize / 2, GSize - 2);
@@ -58,6 +67,7 @@ public class HouseModel extends GridWorldModel {
     public Location lBed3 = new Location(GSize * 2 - 3, 0);
     public Location lBed1 = new Location(GSize + 1, GSize * 3 / 4);
     public Location lMedCabinet = new Location(0, 3); // Movido a una posición más accesible en la cocina
+    public Location lPickup = new Location(GSize - 1, GSize - 1); // Punto de recogida en la entrada
     
     // Initialization of the doors location on the domotic home scene
     public Location lDoorHome = new Location(0, GSize - 1);
@@ -89,19 +99,16 @@ public class HouseModel extends GridWorldModel {
      * Identificar objetos globales que precisen de un único identificador
      */
 
+    private Map<String, Date> medicationExpirationDates = new HashMap<>();
+
     public HouseModel() {
-        // create a GSize x 2GSize grid with 2 mobile agents (robot y owner)
-        super(2 * GSize, GSize, 2);
-        // Inicializar mapas de medicamentos
-        availableMedicines = new HashMap<>();
-        ownerMedicamentos = new HashMap<>();
-        pautas = new HashMap<>();
-        
-        // initial location of robot (column 3, line 3)
-        // ag code 0 means the robot
-        setAgPos(0, 5, 7);
-        setAgPos(1, 5, 9);
-        // setAgPos(2, 0, 0); // Comentamos esta línea ya que solo tenemos 2 agentes
+        // create a GSize x 2GSize grid with 3 mobile agents (robot, owner, and auxiliary)
+        super(2 * GSize, GSize, 3);
+
+        // initial location of agents
+        setAgPos(0, 5, 7); // robot
+        setAgPos(1, 5, 9); // owner
+        setAgPos(2, 2, 2); // auxiliary at pickup point
 
         // Do a new method to create literals for each object placed on
         // the model indicating their nature to inform agents their existence
@@ -119,6 +126,7 @@ public class HouseModel extends GridWorldModel {
         add(BED, lBed2);
         add(BED, lBed3);
         add(MEDCABINET, lMedCabinet); // Añadir gabinete de medicamentos
+        add(puntoRecogida, lPickup); // Añadir punto de recogida
 
         addWall(GSize / 2 + 1, 0, GSize / 2 + 1, GSize / 2 - 2);
         add(DOOR, lDoorKit2);
@@ -149,22 +157,6 @@ public class HouseModel extends GridWorldModel {
         addWall(GSize + 2, GSize / 2, GSize * 2 - 1, GSize / 2);
         add(DOOR, lDoorBed3);
         add(DOOR, lDoorBath2);
-
-        // Inicialización del inventario de medicinas
-        availableMedicines.put("paracetamol", 20);
-        availableMedicines.put("ibuprofeno", 20);
-        availableMedicines.put("lorazepam", 20);
-        availableMedicines.put("aspirina", 20);
-        availableMedicines.put("fent", 20);
-        
-        // Inicialización de las pautas de medicamentos (horario y frecuencia)
-        pautas.put("paracetamol", new Pauta(10,6));
-        pautas.put("ibuprofeno", new Pauta(12,6));
-        pautas.put("lorazepam", new Pauta(22,23));
-        pautas.put("aspirina", new Pauta(17,8));
-        pautas.put("fent", new Pauta(15,2));
-        
-        // Inicialización de la lista de medicamentos del propietario
     }
 
     // Clase interna para almacenar información de medicamentos
@@ -172,11 +164,16 @@ public class HouseModel extends GridWorldModel {
         String name;
         int quantity;
         String schedule;
-
+        Date expirationDate;  // Solo agregamos la fecha de caducidad
+        
         public Medication(String name, int quantity, String schedule) {
             this.name = name;
             this.quantity = quantity;
             this.schedule = schedule;
+            // Establecer fecha de caducidad a 1 año desde la creación
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.YEAR, 1);
+            this.expirationDate = cal.getTime();
         }
     }
 
@@ -204,9 +201,6 @@ public class HouseModel extends GridWorldModel {
         if (hallway.contains(thing)) {
             byDefault = "hallway";
         }
-        if (livingroom.contains(thing)) {
-            byDefault = "livingroom";
-        }
         if (hall.contains(thing)) {
             byDefault = "hall";
         }
@@ -233,9 +227,6 @@ public class HouseModel extends GridWorldModel {
         }
         if (thing.equals("hallway")) {
             toret = hallway.center();
-        }
-        if (thing.equals("livingroom")) {
-            toret = livingroom.center();
         }
         if (thing.equals("hall")) {
             toret = hall.center();
@@ -296,15 +287,21 @@ public class HouseModel extends GridWorldModel {
                     return (isFree(x, y) && !hasObject(WASHER, x, y) && !hasObject(TABLE, x, y) &&
                             !hasObject(SOFA, x, y) && !hasObject(CHAIR, x, y) && !hasObject(FRIDGE, x, y)
                             && !hasObject(BED, x, y)
-                            && !hasObject(MEDCABINET, x, y));
-                } else {
+                            && !hasObject(MEDCABINET, x, y)
+                            && !hasObject(puntoRecogida, x, y)); // Robot no puede ir al punto de recogida
+                } else if (Ag == 1) { // Owner
+                    return (isFree(x, y) && !hasObject(WASHER, x, y) && !hasObject(TABLE, x, y)
+                            && !hasObject(FRIDGE, x, y)
+                            && !hasObject(MEDCABINET, x, y)
+                            && !hasObject(puntoRecogida, x, y)); // Owner no puede ir al punto de recogida
+                } else { // Auxiliary agent
                     return (isFree(x, y) && !hasObject(WASHER, x, y) && !hasObject(TABLE, x, y)
                             && !hasObject(FRIDGE, x, y)
                             && !hasObject(MEDCABINET, x, y));
+                    // El auxiliar SÍ puede ir al punto de recogida (no tiene restricción)
                 }
             }
         }
-
         return false;
     }
 
@@ -391,17 +388,75 @@ public class HouseModel extends GridWorldModel {
         return dirs.size() > 0;
     }
 
-    public int getAvailableMedication(String medicamento) {
-        return availableMedicines.getOrDefault(medicamento, 0);
+    int getAvailableMedication(String medicamento) {
+        int toRet = 0;
+        switch (medicamento) {
+            case "paracetamol":
+                toRet = availableParacetamol;
+                break;
+            case "ibuprofeno":
+                toRet = availableIbuprofeno;
+                break;
+            case "lorazepam":
+                toRet = availableLorazepam;
+                break;
+            case "aspirina":
+                toRet = availableAspirina;
+                break;
+            case "fent":
+                toRet = availableFent;
+                break;
+            default:
+                break;
+        }
+        return toRet;
     }
 
     public void reduceAvailableMedication(String medicamento) {
-        int v = availableMedicines.getOrDefault(medicamento, 0) - 1;
-        availableMedicines.put(medicamento, v < 1 ? 20 : v);
+        switch (medicamento) {
+            case "paracetamol":
+                availableParacetamol--;
+                if(availableParacetamol==0){
+                    availableParacetamol = 20;
+                }
+                break;
+            case "ibuprofeno":
+                availableIbuprofeno--;
+                if(availableIbuprofeno==0){
+                    availableIbuprofeno = 20;
+                }
+                break;
+            case "lorazepam":
+                availableLorazepam--;
+                if(availableLorazepam==0){
+                    availableLorazepam = 20;
+                }
+                break;
+            case "aspirina":
+                availableAspirina--;
+                if(availableAspirina==0){
+                    availableAspirina = 20;
+                }
+                break;
+            case "fent":
+                availableFent--;
+                if(availableFent==0){
+                    availableFent = 20;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     public boolean takeMedication(int ag, String drug) {
-        if(ag == 0 ){
+        // Primero verificar si está caducado
+        if (isMedicationExpired(drug, ag)) {
+            System.out.println("Medicamento " + drug + " estaba caducado - ya repuesto");
+            // No llamar recursivamente, continuar con la toma normal
+        }
+        
+        if(ag == 0 ){ // Robot
             if (isCabinetOpen() && getAvailableMedication(drug) > 0) {
                 reduceAvailableMedication(drug);
                 carryingMedicamentos++;
@@ -410,34 +465,28 @@ public class HouseModel extends GridWorldModel {
                 if (isCabinetOpen()) {
                     System.out.println("The cabinet is opened. ");
                 }
-                ;
                 if (getAvailableMedication(drug) > 0) {
                     System.out.println("The cabinet has enough drug. ");
                 }
-                ;
                 if (carryingMedicamentos == 0) {
                     System.out.println("The robot is not carrying a Drug. ");
                 }
-                ;
                 return false;
             }
-        }else{
-            if (getAvailableMedication(drug) > 0){
+        } else if (ag == 2) { // Auxiliar
+            if (getAvailableMedication(drug) > 0) {
+                reduceAvailableMedication(drug);
+                carryingMedicamentos++; // Incrementar cuando el auxiliar entrega al robot
+                System.out.println("Auxiliar entregando medicina al robot. Robot ahora lleva: " + carryingMedicamentos);
+                return true;
+            }
+        } else { // Owner
+            if (getAvailableMedication(drug) > 0) {
                 reduceAvailableMedication(drug);
                 return true;
-            }else {
-                if (isCabinetOpen()) {
-                    System.out.println("The cabinet is opened. ");
-                }
-                ;
-                if (getAvailableMedication(drug) > 0) {
-                    System.out.println("The cabinet has enough drug. ");
-                }
-                ;
-                return false;
             }
         }
-
+        return false;
     }
 
     public boolean handInMedicamento(int ag) {
@@ -465,6 +514,9 @@ public class HouseModel extends GridWorldModel {
                 break;
             case "cabinet":
                 dest = lMedCabinet;
+                break;
+            case "pickup":
+                dest = lPickup;
                 break;
             case "robot":
                 dest = getAgPos(0);
@@ -539,13 +591,56 @@ public class HouseModel extends GridWorldModel {
     
 
     public boolean addMedication(String medicamento, int qtd) {
-        availableMedicines.put(medicamento, qtd);
+        // Establecer fecha de caducidad al agregar medicamento
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.YEAR, 1);
+        medicationExpirationDates.put(medicamento, cal.getTime());
+        
+        switch (medicamento) {
+            case "paracetamol":
+                availableParacetamol = qtd;
+                break;
+            case "ibuprofeno":
+                availableIbuprofeno = qtd;
+                break;
+            case "lorazepam":
+                availableLorazepam = qtd;
+                break;
+            case "aspirina":
+                availableAspirina = qtd;
+                break;
+            case "fent":
+                availableFent = qtd;
+                break;
+            default:
+                break;
+        }
         return true;
     }
 
 
 
-    public HashMap<String,Integer> getOwnerMedicamentos() {
+    public int getAvailableParacetamol() {
+        return availableParacetamol;
+    }
+
+    public int getAvailableIbuprofeno() {
+        return availableIbuprofeno;
+    }
+
+    public int getAvailableLorazepam() {
+        return availableLorazepam;
+    }
+
+    public int getAvailableAspirina() {
+        return availableAspirina;
+    }
+
+    public int getAvailableFent() {
+        return availableFent;
+    }
+
+    public List<String> getOwnerMedicamentos() {
         return ownerMedicamentos;
     }
 
@@ -555,12 +650,7 @@ public class HouseModel extends GridWorldModel {
      * @param medicamento Nombre del medicamento a eliminar
      */
     public void removeOwnerMedicamento(String medicamento) {
-        int qty = ownerMedicamentos.getOrDefault(medicamento, 0);
-        if (qty > 1) {
-            ownerMedicamentos.put(medicamento, qty - 1);
-        } else {
-            ownerMedicamentos.remove(medicamento);
-        }
+        ownerMedicamentos.remove(medicamento);
     }
 
     /**
@@ -569,8 +659,7 @@ public class HouseModel extends GridWorldModel {
      * @param medicamento Nombre del medicamento a añadir
      */
     public void addOwnerMedicamento(String medicamento) {
-        ownerMedicamentos.put(medicamento,
-            ownerMedicamentos.getOrDefault(medicamento, 0) + 1);
+        ownerMedicamentos.add(medicamento);
     }
 
     /**
@@ -645,21 +734,87 @@ public class HouseModel extends GridWorldModel {
         return lMedCabinet;
     }
 
-    public Map<String, Integer> getAvailableMedicines() {
-        return availableMedicines;
-    }
-
-    public static class Pauta {
-        public final int hora;
-        public final int freq;
-
-        public Pauta(int hora, int freq) {
-            this.hora = hora;
-            this.freq = freq;
+    // Método para verificar si un medicamento está caducado
+    public boolean isMedicationExpired(String medication, int agentId) {
+        // Para pruebas: ajustar la simulación para que deje de estar caducado después de reponerlo
+        if (medication.equals("paracetamol") || medication.equals("aspirina")) {
+            // Verificar si hay una fecha de expiración (indicando que ya fue repuesto)
+            Date expirationDate = medicationExpirationDates.get(medication);
+            if (expirationDate != null && expirationDate.after(new Date())) {
+                // Ya fue repuesto y tiene una fecha válida
+                return false;
+            }
+            
+            System.out.println("### SIMULACIÓN DE PRUEBA ###");
+            System.out.println("Medicamento " + medication + " está caducado - se requiere reposición");
+            // Notificar caducidad pero no reponer automáticamente
+            if (agentId == 1) {
+                System.out.println("[owner] detectó que " + medication + " está caducado");
+                // La reposición se hará visualmente a través del auxiliar
+            } else if (agentId == 2) {
+                System.out.println("[auxiliar] detectó que " + medication + " está caducado");
+                // La reposición se hará visualmente por el mismo auxiliar
+            }
+            return true;
         }
+        
+        Date expirationDate = medicationExpirationDates.get(medication);
+        if (expirationDate == null) return false;
+        boolean expired = new Date().after(expirationDate);
+        
+        if (expired) {
+            if (agentId == 1) {
+                System.out.println("[owner] detectó que " + medication + " está caducado");
+            } else if (agentId == 2) {
+                System.out.println("[auxiliar] detectó que " + medication + " está caducado");
+            }
+        }
+        
+        return expired;
     }
 
-    public Map<String,Pauta> getPautas() { 
-        return pautas; 
+    // Mantener el método original para compatibilidad con código existente
+    public boolean isMedicationExpired(String medication) {
+        // Por defecto, asumimos que es el robot quien verifica (agentId = 0)
+        return isMedicationExpired(medication, 0);
     }
+
+    // Método para reponer medicamentos caducados
+    public void reponerMedicamentoCaducado(String medicamento) {
+        // Establecer nueva fecha de caducidad - un año a partir de ahora
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.YEAR, 1);
+        medicationExpirationDates.put(medicamento, cal.getTime());
+        
+        // Reponer la cantidad
+        switch (medicamento) {
+            case "paracetamol":
+                availableParacetamol = 20;
+                break;
+            case "ibuprofeno":
+                availableIbuprofeno = 20;
+                break;
+            case "lorazepam":
+                availableLorazepam = 20;
+                break;
+            case "aspirina":
+                availableAspirina = 20;
+                break;
+            case "fent":
+                availableFent = 20;
+                break;
+        }
+        
+        System.out.println("Medicamento " + medicamento + " ha sido repuesto: nueva fecha de caducidad establecida");
+    }
+
+    // Método para resetear estado de caducidad 
+    public void resetExpiredStatus(String medicamento) {
+        // Establecer nueva fecha de caducidad - un año a partir de ahora
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.YEAR, 1);
+        medicationExpirationDates.put(medicamento, cal.getTime());
+        System.out.println("Estado de caducidad de " + medicamento + " ha sido restablecido");
+    }
+
 }

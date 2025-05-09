@@ -1,14 +1,14 @@
 // Este robot está diseñado para gestionar la entrega de medicamentos al propietario.
 
 // El robot tiene un inventario de medicamentos y su disponibilidad inicial es 20 unidades para cada uno.
-cantidad(paracetamol,20).
-cantidad(ibuprofeno,20).
-cantidad(aspirina,20).
-cantidad(lorazepam,20).
-cantidad(fent,20).
+// cantidad(paracetamol,20).
+// cantidad(ibuprofeno,20).
+// cantidad(aspirina,20).
+// cantidad(lorazepam,20).
+// cantidad(fent,20).
 
 // Actualización de disponibilidad cuando cambia el inventario
-+newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
+// +newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
 
 !simularComportamiento.   
 /* Plans */
@@ -74,36 +74,30 @@ cantidad(fent,20).
     if(H-1 == 0){
         +cantidad(M,20);
         .print("Reiniciado a 20 el medicamento: ", M);
-    }else{
-    +cantidad(M,H-1);
-    .print("Quedan ", H-1, " unidades de ", M)
+    } else {
+        +cantidad(M,H-1);
+        .print("Quedan ", H-1, " unidades de ", M);
+        if(H-1 < 10) {
+            .print("Stock bajo de ", M, ", notificando al auxiliar");
+            .send(auxiliar, tell, lowStock(M));
+        }
     }.
 
+// Plan para manejar la confirmación de reposición del auxiliar
++medicamentoRepuesto(M)[source(auxiliar)] <-
+    .print("Confirmación recibida: ", M, " ha sido repuesto por el auxiliar").
 
+// Plan atómico para entregar medicamentos
 // Plan atómico para entregar medicamentos
 +!bring(owner,L)[source(self)]
    <- 
       if(not at(owner,cabinet) & not .belief(comprobarConsumo(_))){
         .drop_intention(simularComportamiento);
          .send(owner, tell, quieto);
-         open(cabinet);
-         for(.member(pauta(M,H,F),L))
-         {
-            takeMedication(robot,M);
-            !reducirCantidad(M);
-            !go_at(robot,cabinet);
-            .print("He cogido ", M);
-         };
-         close(cabinet);
-         .send(owner,tell,espera);
-         for(.member(pauta(M,H,F),L))
-         {
-         !go_at(robot,owner);
-             .print("Le he dado ", M);
-            handInMedicamento(M);
-            !resetearPauta(M);
-         }
-         .send(owner, untell, quieto);
+         // Delegar la tarea al auxiliar
+         .send(auxiliar, achieve, entregarMedicamento(L));
+         .wait(2000);
+         !simularComportamiento;
       }else{
           .wait(2000);
           .drop_intention(simularComportamiento);
@@ -114,7 +108,7 @@ cantidad(fent,20).
             .abolish(comprobarConsumo(M));
          }
       }
-      !simularComportamiento.
+      !simularComportamiento. 
 
 //Regla de error
 

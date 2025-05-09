@@ -1,29 +1,23 @@
 //Codigo para el funcionamiento del agente Owner
 
-//pauta_medicamentos.
+!pauta_medicamentos.
 !simularComportamiento.
 //Pautas de los medicamentos,es decir,horarios y frecuencia de toma.
-// pauta(paracetamol,10,6).
-// pauta(ibuprofeno,12,6).
-// pauta(lorazepam,22,23).
-// pauta(aspirina,17,8).
-// pauta(fent,15,2).
+pauta(paracetamol,10,6).
+pauta(ibuprofeno,12,6).
+pauta(lorazepam,22,23).
+pauta(aspirina,17,8).
+pauta(fent,15,2).
 
 
 //El robot es quien controla los horarios,es decir,actualiza tras una consumicion,por lo tanto debe indicarle al owner la nueva hora.
-// +pauta(M,H,F)[source(robot)] <- .abolish(pauta(M,H-F,_)).
-// +!pauta_medicamentos 
-   // <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
-   // for(.member(I,L))
-   // {
-   //  	.send(robot,tell,I);
-   // }.
-// +!pauta_medicamentos 
-   // <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
-   // for(.member(I,L))
-   // {
-   //  	.send(robot,tell,I);
-   // }.
++pauta(M,H,F)[source(robot)] <- .abolish(pauta(M,H-F,_)).
++!pauta_medicamentos 
+   <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
+   	  for(.member(I,L))
+	  {
+	  	.send(robot,tell,I);
+	  }.
 
 //Owner va por las medicinas,por tanto suspende su comportamiento.
 //@tomarMedicina[atomic]
@@ -68,7 +62,7 @@
 
 
 //Simulamos comportamiento,utilizamos la aleatoriedad para distribuirlo en 3 casos:1)Moverse a elementos actuables2)Sentarse3)Siesta.
-+!simularComportamiento : not durmiendo
++!simularComportamiento[source(self)] : not durmiendo & not esperandoJuntoAlGabinete
    <- .random(X); .wait(3000*X + 5000); // wait for a random time
      if(X < 0.5){
       .random([fridge,washer],Y);
@@ -151,25 +145,70 @@
    .wait(2000);
    .print("He tomado ",A).
 
+// Plan para manejar medicamentos caducados detectados por el owner
++medicinaCaducada(M)[source(percept)] <-
+    .print("¡He detectado que el medicamento ", M, " está caducado!");
+    .print("Solicitando al auxiliar que reponga el medicamento");
+    .send(auxiliar, tell, reponerMedicinaCaducada(M));
+    +esperandoReposicion(M);
+    +esperandoJuntoAlGabinete;
+    // Si está en plan de simular comportamiento, detenlo para esperar
+    if(.intend(simularComportamiento)){
+        .drop_intention(simularComportamiento);
+    }
+    .print("Esperando junto al gabinete a que el auxiliar reponga el medicamento").
 
+// Plan para cuando el auxiliar ha repuesto un medicamento
++medicamentoRepuesto(M)[source(auxiliar)] <-
+    .print("El auxiliar ha repuesto el medicamento ", M);
+    -esperandoReposicion(M);
+    -medicinaCaducada(M)[source(percept)];
+    .print("Ahora puedo tomar el medicamento ", M);
+    // El owner ya está en el gabinete, simplemente toma el medicamento
+    open(cabinet);
+    takeMedication(owner, M);
+    .print("He cogido la medicina ", M);
+    .send(robot, achieve, comprobarConsumo(M));
+    handInMedicamento(M);
+    close(cabinet);
+    -esperandoJuntoAlGabinete;
+    !simularComportamiento.
+
+// Plan para cuando el robot trae la medicina repuesta
++medicamentoEntregado(M)[source(robot)] <-
+    .print("El robot me ha entregado el medicamento repuesto ", M);
+    // Consumir el medicamento inmediatamente
+    !consume(M);
+    .print("He tomado el medicamento repuesto ", M).
+
+// Plan de fallo para cuando takeMedication falla debido a medicina caducada
+-!tomar(owner,L)[error(action_failed)] <-
+    .print("No se pudo completar la toma de medicación debido a un fallo");
+    close(cabinet).
 
 // Finalización completa del plan de tomar medicamentos
-// (Reemplazando la implementación parcial existente)
 +!tomar(owner,L)[source(self)]
    <- !go_at(owner,cabinet);
       if(not at(robot,cabinet) & not quieto){
          open(cabinet);
-		 .send(robot,achieve,comprueba(L));
-         for(.member(pauta(M,H,F),L))
-         {
-            .abolish(pauta(M,H,F));
-      	   takeMedication(owner,M);
-            .print("He cogido la medicina ", M);
-            .send(robot, tell, comprobarConsumo(M));
-         };
-         for(.member(pauta(M,H,F),L))
-         {
-            handInMedicamento(M);
+         .send(robot,achieve,comprueba(L));
+         // Tomamos solo medicamentos que no están en espera de reposición
+         for(.member(pauta(M,H,F),L)) {
+             if(not esperandoReposicion(M)) {
+                 .abolish(pauta(M,H,F));
+                 takeMedication(owner,M);
+                 .print("He cogido la medicina ", M);
+                 .send(robot, tell, comprobarConsumo(M));
+                 handInMedicamento(M);
+             } else {
+                 .print("Esperando a que el auxiliar reponga ", M);
+             }
          }
          close(cabinet);
       }.
+
+// Si está esperando junto al gabinete, se queda ahí
++!simularComportamiento[source(self)] : esperandoJuntoAlGabinete <-
+    .print("Sigo esperando junto al gabinete a que se repongan los medicamentos");
+    .wait(5000);
+    !simularComportamiento.

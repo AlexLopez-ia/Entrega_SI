@@ -1,23 +1,29 @@
 //Codigo para el funcionamiento del agente Owner
 
-!pauta_medicamentos.
+//pauta_medicamentos.
 !simularComportamiento.
 //Pautas de los medicamentos,es decir,horarios y frecuencia de toma.
-pauta(paracetamol,10,6).
-pauta(ibuprofeno,12,6).
-pauta(lorazepam,22,23).
-pauta(aspirina,17,8).
-pauta(fent,15,2).
+// pauta(paracetamol,10,6).
+// pauta(ibuprofeno,12,6).
+// pauta(lorazepam,22,23).
+// pauta(aspirina,17,8).
+// pauta(fent,15,2).
 
 
 //El robot es quien controla los horarios,es decir,actualiza tras una consumicion,por lo tanto debe indicarle al owner la nueva hora.
-+pauta(M,H,F)[source(robot)] <- .abolish(pauta(M,H-F,_)).
-+!pauta_medicamentos 
-   <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
-   	  for(.member(I,L))
-	  {
-	  	.send(robot,tell,I);
-	  }.
+// +pauta(M,H,F)[source(robot)] <- .abolish(pauta(M,H-F,_)).
+// +!pauta_medicamentos 
+   // <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
+   // for(.member(I,L))
+   // {
+   //  	.send(robot,tell,I);
+   // }.
+// +!pauta_medicamentos 
+   // <- .findall(pauta(A,B,C),.belief(pauta(A,B,C)),L);
+   // for(.member(I,L))
+   // {
+   //  	.send(robot,tell,I);
+   // }.
 
 //Owner va por las medicinas,por tanto suspende su comportamiento.
 //@tomarMedicina[atomic]
@@ -62,7 +68,7 @@ pauta(fent,15,2).
 
 
 //Simulamos comportamiento,utilizamos la aleatoriedad para distribuirlo en 3 casos:1)Moverse a elementos actuables2)Sentarse3)Siesta.
-+!simularComportamiento[source(self)] : not durmiendo
++!simularComportamiento : not durmiendo
    <- .random(X); .wait(3000*X + 5000); // wait for a random time
      if(X < 0.5){
       .random([fridge,washer],Y);

@@ -9,7 +9,6 @@ import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.net.URL;
 import java.nio.file.Paths;
 
@@ -46,7 +45,7 @@ public class HouseView extends GridWorldView {
         currentDirectory = Paths.get("").toAbsolutePath().toString();
         viewSize = 800;
         setSize(viewSize, viewSize/2);
-        repaint();
+      //  repaint();
     }
 
     /** draw application objects */
@@ -54,6 +53,7 @@ public class HouseView extends GridWorldView {
     public void draw(Graphics g, int x, int y, int object) {
         Location lRobot = model.getAgPos(0);
         Location lOwner = model.getAgPos(1);
+        Location lAuxiliar = model.getAgPos(2);
         Location loc = new Location(x, y);
         String objPath = currentDirectory;
         g.setColor(Color.white);
@@ -145,14 +145,22 @@ public class HouseView extends GridWorldView {
         case HouseModel.MEDCABINET:
             drawMedCabinet(g, x, y);
             break;
+        case HouseModel.puntoRecogida:
+            g.setColor(Color.lightGray);
+            objPath = "/doc/pickup.png";
+            drawImage(g, x, y, objPath);
+            g.setColor(Color.blue);
+            super.drawString(g, x, y, defaultFont, "P");
+            break;
         }
-        repaint();
+      //  repaint();
     }
                           
     @Override
     public void drawAgent(Graphics g, int x, int y, Color c, int id) {
         Location lRobot = model.getAgPos(0);
         Location lOwner = model.getAgPos(1);
+        Location lAuxiliar = model.getAgPos(2);
         String objPath = currentDirectory;
 
         if (id == 0) { // Robot
@@ -229,10 +237,24 @@ public class HouseView extends GridWorldView {
             }
             if (lRobot != null && lRobot.isNeigbour(lOwner)) {	
                 String o = "S";
-
                 g.setColor(Color.yellow);
                 drawString(g, x, y, defaultFont, o);
             }                                                           
+        } else if (id == 2) { // Auxiliar
+            // Visualización del agente auxiliar
+            objPath = "/doc/auxiliar.png";  // Asegúrate de tener esta imagen en tu directorio de recursos
+            drawImage(g, x, y, objPath);
+            g.setColor(Color.blue);
+            super.drawString(g, x, y, defaultFont, "Aux");
+            
+            // Mostrar estado de actividad si está cerca del gabinete o punto de recogida
+            if (lAuxiliar.isNeigbour(model.lMedCabinet)) {
+                g.setColor(Color.green);
+                drawString(g, x, y, defaultFont, "R");
+            } else if (lAuxiliar.isNeigbour(model.lPickup)) {
+                g.setColor(Color.orange);
+                drawString(g, x, y, defaultFont, "C");
+            }
         }			        
     } 
 	
@@ -422,13 +444,15 @@ public class HouseView extends GridWorldView {
             drawImage(g, x, y, objPath);
             g.setColor(Color.yellow);
             
-            // Mostrar información detallada de medicamentos dinámicamente
-            int offset = 0;
-            for (Map.Entry<String,Integer> e : model.getAvailableMedicines().entrySet()) {
-                String text = e.getKey().substring(0,2).toUpperCase() + " (" + e.getValue() + ")";
-                drawString(g, x, y + offset, defaultFont, text);
-                offset++;
-            }
+            
+            // Mostrar información detallada de medicamentos
+            drawString(g, x, y, defaultFont, "PA (" + model.getAvailableMedication("paracetamol") + ")" + 
+                       "IB (" + model.getAvailableMedication("ibuprofeno") + ")" + 
+                       "LO (" + model.getAvailableMedication("lorazepam") + ")");
+            drawString(g, x, y + 1, defaultFont, "AS (" + model.getAvailableMedication("aspirina") + ")" + 
+                       "FT (" + model.getAvailableMedication("fent") + ")");
+                       
+          
         } else {
             // Gabinete cerrado
             String objPath = "/doc/medicinas_cerrado.jpeg";

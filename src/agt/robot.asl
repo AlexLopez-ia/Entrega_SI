@@ -1,14 +1,14 @@
 // Este robot está diseñado para gestionar la entrega de medicamentos al propietario.
 
 // El robot tiene un inventario de medicamentos y su disponibilidad inicial es 20 unidades para cada uno.
-// cantidad(paracetamol,20).
-// cantidad(ibuprofeno,20).
-// cantidad(aspirina,20).
-// cantidad(lorazepam,20).
-// cantidad(fent,20).
+cantidad(paracetamol,20).
+cantidad(ibuprofeno,20).
+cantidad(aspirina,20).
+cantidad(lorazepam,20).
+cantidad(fent,20).
 
 // Actualización de disponibilidad cuando cambia el inventario
-// +newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
++newAvailability(M,Qtd)<--cantidad(M,_);+cantidad(M,Qtd);.abolish(newAvailability(M,Qtd)).
 
 !simularComportamiento.   
 /* Plans */
@@ -79,44 +79,81 @@
     .print("Quedan ", H-1, " unidades de ", M)
     }.
 
+// Manejo de la entrega de medicamento del auxiliar
++medicamentoEntregado(M)[source(auxiliar)] <- 
+    .print("Medicamento ", M, " recibido del auxiliar");
+    +medicamentoRecibido(M).
+
+// Plan para solicitar un medicamento al auxiliar
++!solicitarMedicamento(M)[source(self)] <-
+    .print("Solicitando medicamento ", M, " al auxiliar");
+    .abolish(medicamentoRecibido(M));
+    .send(auxiliar, tell, recogerMedicina(M));
+    .print("Esperando a que el auxiliar recoja ", M, " y me lo traiga").
+
+// Plan para esperar la entrega de un medicamento
++!esperarMedicamento(M)[source(self)] <-
+    .print("Esperando entrega del medicamento ", M);
+    .wait({+medicamentoRecibido(M)});
+    .print("¡Medicamento ", M, " recibido correctamente del auxiliar!").
+
+// Plan para entregar un medicamento específico al owner
++!entregarMedicamentoAlOwner(M)[source(self)] <-
+    .print("Le he dado ", M);
+    handInMedicamento(M);
+    !resetearPauta(M).
+
+// Plan para manejar fallos en la entrega de un medicamento específico
+-!entregarMedicamentoAlOwner(M)[source(self)] <-
+    .print("Error al entregar ", M, ", pero continuamos");
+    !resetearPauta(M).
 
 // Plan atómico para entregar medicamentos
-+!bring(owner,L)[source(self)]
-   <- 
-      if(not at(owner,cabinet) & not .belief(comprobarConsumo(_))){
++!bring(owner,L)[source(self)] <-
+    if(not at(owner,cabinet) & not .belief(comprobarConsumo(_))) {
         .drop_intention(simularComportamiento);
-         .send(owner, tell, quieto);
-         open(cabinet);
-         for(.member(pauta(M,H,F),L))
-         {
-            takeMedication(robot,M);
+        .send(owner, tell, quieto);
+        
+        for(.member(pauta(M,H,F),L)) {
+            // Proceso de obtención del medicamento a través del auxiliar
+            !solicitarMedicamento(M);
+            !esperarMedicamento(M);
+            
+            // Si llegamos aquí, tenemos el medicamento
             !reducirCantidad(M);
-            !go_at(robot,cabinet);
-            .print("He cogido ", M);
-         };
-         close(cabinet);
-         .send(owner,tell,espera);
-         for(.member(pauta(M,H,F),L))
-         {
-         !go_at(robot,owner);
-             .print("Le he dado ", M);
-            handInMedicamento(M);
-            !resetearPauta(M);
-         }
-         .send(owner, untell, quieto);
-      }else{
-          .wait(2000);
-          .drop_intention(simularComportamiento);
-         .findall(M,.belief(comprobarConsumo(M)),X); //si e lowner le mando comprobarConsumo, el robot lo comprueba.
-         for(.member(M,X)){
-             .print("Compruebo el consumo de ",M);
+            
+            // Entrega del medicamento al propietario
+            .send(owner, tell, espera);
+            !go_at(robot, owner);
+            
+            // Usar un subplan para manejar la entrega (que puede fallar)
+            !entregarMedicamentoAlOwner(M);
+        }
+        
+        .send(owner, untell, quieto);
+    } else {
+        .wait(2000);
+        .drop_intention(simularComportamiento);
+        .findall(M,.belief(comprobarConsumo(M)),X);
+        for(.member(M,X)) {
+            .print("Compruebo el consumo de ",M);
             !comprobarConsumo(M);
             .abolish(comprobarConsumo(M));
-         }
-      }
-      !simularComportamiento.
+        }
+    }
+    !simularComportamiento.
 
-//Regla de error
+// Manejo de fallos en la entrega de medicamentos
+-!bring(owner,L)[source(self)] <- 
+    .print("Error al entregar medicamentos");
+    .send(owner, untell, quieto);
+    .send(owner, tell, falloEntrega);
+    !simularComportamiento.
+
++!comprobarConsumo(M)[source(owner)] : cantidad(M,H) <- 
+    open(cabinet);
+    !comprobar(M,H);
+    close(cabinet).
 
 // Verificación del consumo de medicamentos
 +!comprobarConsumo(M)[source(self)] : cantidad(M,H) <- 
@@ -180,3 +217,11 @@
 			!resetearPauta(M);
          }
 		 !reponer.
+
+// Plan para manejar notificaciones de medicamentos caducados
++esperaMedicamentoNuevo(M)[source(auxiliar)] <-
+    .print("El auxiliar me informa que ", M, " está caducado");
+    .print("Esperando a que el auxiliar reponga el medicamento ", M);
+    .wait({+medicamentoEntregado(M)});
+    .print("El auxiliar ha repuesto y entregado el medicamento ", M).
+
